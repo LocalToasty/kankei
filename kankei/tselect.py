@@ -37,10 +37,8 @@ class Predicate:
     def get_selected_idxs(self, df: pd.DataFrame) -> pd.Series:
         if isinstance(self.rhs, AttributeName):
             return self.op(df[self.lhs.v], df[self.rhs.v])
-        elif isinstance(self.rhs, str):
+        else:
             return self.op(df[self.lhs.v], self.rhs)
-        else:  # float
-            return self.op(pd.to_numeric(df[self.lhs.v]), self.rhs)
 
     @classmethod
     def from_str(cls, s: str):
@@ -91,9 +89,12 @@ def main():
             "will be selected."
         ),
     )
+    parser.add_argument(
+        "-r", "--raw", action="store_true", help="Always interpret values as strings."
+    )
     args = parser.parse_args()
 
-    df = read_table(args.table)
+    df = read_table(args.table, dtype=str if args.raw else None)
 
     selected_idxs = reduce(
         operator.or_,
