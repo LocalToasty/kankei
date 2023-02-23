@@ -10,7 +10,12 @@ from typing import Callable, Union
 
 import pandas as pd
 
-from kankei.utils import read_table
+from kankei.utils import (
+    add_general_arguments,
+    post_process_table,
+    read_table,
+    write_table,
+)
 
 
 @dataclass
@@ -72,8 +77,8 @@ def main():
         help="File to read from, or stdin if not specified.",
     )
     parser.add_argument(
-        "-p",
-        "--predicate",
+        "-s",
+        "--select",
         metavar="PRED",
         dest="predicates",
         type=Predicate.from_str,
@@ -90,11 +95,14 @@ def main():
         ),
     )
     parser.add_argument(
-        "-r", "--raw", action="store_true", help="Always interpret values as strings."
+        "--raw", action="store_true", help="Always interpret values as strings."
     )
+    parser = add_general_arguments(parser)
     args = parser.parse_args()
 
-    df = read_table(args.table, dtype=str if args.raw else None)
+    df = read_table(
+        args.table, dtype=str if args.raw else None, renamings=args.renamings
+    )
 
     selected_idxs = reduce(
         operator.or_,
@@ -102,7 +110,18 @@ def main():
         [False] * len(df),
     )
 
-    sys.stdout.write(df[selected_idxs].drop_duplicates().to_csv(index=False))
+    write_table(
+        post_process_table(
+            df[selected_idxs],
+            project_onto=args.project_onto,
+            unique=args.unique,
+            sort_by=args.sort_by,
+            sort_ascending=args.sort_ascending,
+            offset=args.offset,
+            limit=args.limit,
+        ),
+        pretty_print=args.pretty_print,
+    )
 
 
 if __name__ == "__main__":
